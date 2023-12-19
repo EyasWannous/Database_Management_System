@@ -1,0 +1,50 @@
+#!/bin/bash
+
+/bin/bash ./List_Databases
+
+echo -n "Enter the name of the database to delete: "
+read DB_NAME
+
+if [ ! -d "Databases/$DB_NAME" ]; then
+    echo "Database '$DB_NAME' does not exist."
+    exit 1
+fi
+
+if [ "$(whoami)" != "$(stat -c '%U' "Databases/$DB_NAME")" ]; then
+    IS_ADMIN=false
+    while IFS= read -r admin; do
+        if [ "$(whoami)" == "$admin" ]; then
+            IS_ADMIN=true
+            break
+        fi
+    done < "admins"
+
+    if [ "$IS_ADMIN" != true ]; then
+        echo "Permission denied. You do not have access to delete '$DB_NAME'."
+        exit 1
+    fi
+fi
+
+if [ -n "$(ls -A "Databases/$DB_NAME")" ]; then
+    echo "Database '$DB_NAME' is not empty. Cannot delete a non-empty database."
+    exit 1
+fi
+
+#before remove file I should make Log
+## log
+LOG_FILE="/opt/logs/db_activity.log"
+ADMINS_FILE="./admins"
+DB_PATH="./Databases/$DB_NAME"
+
+if grep -qx "$(whoami)" "$ADMINS_FILE"; then
+    USER_ROLE="admin"
+elif [ "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]; then
+    USER_ROLE="owner"
+else
+    USER_ROLE="other"
+fi
+
+echo "Database:$DB_NAME Deleted $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"
+
+rm -rf "Databases/$DB_NAME"
+echo "Database '$DB_NAME' has been deleted successfully."

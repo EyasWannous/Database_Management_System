@@ -1,0 +1,61 @@
+#!/bin/bash
+
+/bin/bash ./List_Databases
+
+echo -n "Enter the name of the database to retrieve data from: "
+read DB_NAME
+
+if [ ! -d "Databases/$DB_NAME" ]; then
+    echo "Database '$DB_NAME' does not exist."
+    exit 1
+fi
+
+echo "Tables in '$DB_NAME':"
+ls "Databases/$DB_NAME"
+
+echo -n "Enter the name of the table to retrieve data from: "
+read TABLE_NAME
+
+if [ ! -f "Databases/$DB_NAME/$TABLE_NAME" ]; then
+    echo "Table '$TABLE_NAME' does not exist in database '$DB_NAME'."
+    exit 1
+fi
+
+echo "Retrieval options:"
+echo "1. Retrieve all table data"
+echo "2. Retrieve data based on specific criteria"
+
+echo -n "Enter your choice (1 or 2): "
+read RETRIEVAL_CHOICE
+
+case $RETRIEVAL_CHOICE in
+    1)
+        echo "All data in '$TABLE_NAME':"
+        cat "Databases/$DB_NAME/$TABLE_NAME"
+        ;;
+    2)
+        echo -n "Enter the value to search for: "
+        read SEARCH_VALUE
+        echo "Data in '$TABLE_NAME' where value is '$SEARCH_VALUE':"
+        grep "$SEARCH_VALUE" "Databases/$DB_NAME/$TABLE_NAME"
+        ;;
+    *)
+        echo "Invalid choice. Please enter 1 or 2."
+        exit 1
+        ;;
+esac
+
+##Log
+LOG_FILE="/opt/logs/db_activity.log"
+ADMINS_FILE="./admins"
+DB_PATH="./Databases/$DB_NAME"
+
+if grep -qx "$(whoami)" "$ADMINS_FILE"; then
+    USER_ROLE="admin"
+elif [ "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]; then
+    USER_ROLE="owner"
+else
+    USER_ROLE="other"
+fi
+
+echo "retrieve data in Database:$DB_NAME from Table:$TABLE_NAME $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"

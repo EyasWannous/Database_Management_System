@@ -1,0 +1,72 @@
+#!/bin/bash
+
+/bin/bash ./List_Databases
+
+echo -n "Enter the name of the database to insert data into: "
+read DB_NAME
+
+if [ ! -d "Databases/$DB_NAME" ]; then
+    echo "Database '$DB_NAME' does not exist."
+    exit 1
+fi
+
+echo "Tables in '$DB_NAME':"
+ls "Databases/$DB_NAME"
+
+echo -n "Enter the name of the table to insert data into: "
+read TABLE_NAME
+
+if [ "$(whoami)" != "$(stat -c '%U' "Databases/$DB_NAME")" ]; then
+    IS_ADMIN=false
+    while IFS= read -r admin; do
+        if [ "$(whoami)" == "$admin" ]; then
+            IS_ADMIN=true
+            break
+        fi
+    done < "admins"
+
+    if [ "$IS_ADMIN" != true ]; then
+        echo "Permission denied. You do not have access to insert data into tables in '$DB_NAME'."
+        exit 1
+    fi
+fi
+
+if [ ! -f "Databases/$DB_NAME/$TABLE_NAME" ]; then
+    echo "Table '$TABLE_NAME' does not exist in database '$DB_NAME'."
+    exit 1
+fi
+
+echo "Columns in '$TABLE_NAME':"
+head -n 1 "Databases/$DB_NAME/$TABLE_NAME"
+
+echo "Enter data for each column:"
+ID_VALUE=("$(cat /proc/sys/kernel/random/uuid)")
+
+COLUMN_NAMES=$(head -n 1 "Databases/$DB_NAME/$TABLE_NAME")
+COLUMN_NAMES_ARRAY=($COLUMN_NAMES)
+COLUMN_VALUES="$ID_VALUE"
+for ((i = 1; i < ${#COLUMN_NAMES_ARRAY[@]}; i++)); do
+    echo -n "Enter value for ${COLUMN_NAMES_ARRAY[$i]}: "
+    read COLUMN_VALUE
+
+    COLUMN_VALUES="$COLUMN_VALUES $COLUMN_VALUE"
+done
+
+echo "$COLUMN_VALUES" >> "Databases/$DB_NAME/$TABLE_NAME"
+
+echo "Data inserted successfully into '$TABLE_NAME' in database '$DB_NAME'."
+
+##Log
+LOG_FILE="/opt/logs/db_activity.log"
+ADMINS_FILE="./admins"
+DB_PATH="./Databases/$DB_NAME"
+
+if grep -qx "$(whoami)" "$ADMINS_FILE"; then
+    USER_ROLE="admin"
+elif [ "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]; then
+    USER_ROLE="owner"
+else
+    USER_ROLE="other"
+fi
+
+echo "inserted data to Database:$DB_NAME into Table:$TABLE_NAME $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"

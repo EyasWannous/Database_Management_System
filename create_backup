@@ -1,0 +1,101 @@
+#!/bin/bash
+
+backup_dir="/opt/Backups"
+database_dir="Databases"
+
+if [ ! -d "$backup_dir" ]; then
+    mkdir "$backup_dir"
+fi
+
+/bin/bash ./List_Databases
+
+
+read -p "Enter 1 if you want to backup all databases
+Enter 2 if you want to to backup a specific database :
+	 " op
+
+	 case "$op" in
+	 1)
+	 	selected_database=".."
+	 	;;
+	 2)
+		read -p "Enter the name of the database you want to backup: " selected_database
+		if [ ! -d "$database_dir/$selected_database" ]; then
+    		echo "Database '$selected_database' does not exist."
+    		exit 1
+		fi
+		;;
+	*)
+		echo "invalid value"
+		exit 1
+		;;
+	esac
+
+
+
+echo "Choose backup type:"
+echo "1. Scheduled (daily, weekly, or monthly)"
+echo "2. Date-specific"
+read -p "Enter your choice (1 or 2): " backup_type
+
+if [ "$backup_type" == "1" ]; then
+    echo "Choose scheduling type:"
+    echo "1. Daily"
+    echo "2. Weekly"
+    echo "3. Monthly"
+    read -p "Enter your choice (1, 2, or 3): " scheduling_type
+
+    case "$scheduling_type" in
+        1)
+            read -p "Choose compression mode (zip, tar, gzip): " compression_mode
+            /bin/bash "./schedule_backup_daily" "$selected_database" "$compression_mode"
+            ;;
+        2)
+            read -p "Choose compression mode (zip, tar, gzip): " compression_mode
+            /bin/bash "./schedule_backup_weekly" "$selected_database" "$compression_mode"
+            ;;
+        3)
+            read -p "Choose compression mode (zip, tar, gzip): " compression_mode
+            /bin/bash "./schedule_backup_monthly" "$selected_database" "$compression_mode"
+            ;;
+        *)
+            echo "Invalid scheduling type selected."
+            exit 1
+            ;;
+    esac
+else
+    read -p "Enter the backup date (YYYYMMDD): " backup_date
+    read -p "Choose compression mode (zip, tar, gzip): " compression_mode
+
+    case "$compression_mode" in
+        zip)
+            /bin/bash "./date_specific_backup" "$selected_database" "$backup_date" zip
+            ;;
+        tar)
+            /bin/bash "./date_specific_backup" "$selected_database" "$backup_date" tar
+            ;;
+        gzip)
+            /bin/bash "./date_specific_backup" "$selected_database" "$backup_date" gzip
+            ;;
+        *)
+            echo "Invalid compression mode selected."
+            exit 1
+            ;;
+    esac
+fi
+
+##Log
+LOG_FILE="/opt/logs/db_activity.log"
+ADMINS_FILE="./admins"
+DB_PATH="./Databases/$DB_NAME"
+
+if grep -qx "$(whoami)" "$ADMINS_FILE"; then
+    USER_ROLE="admin"
+elif [ "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]; then
+    USER_ROLE="owner"
+else
+    USER_ROLE="other"
+fi
+
+echo "create backup for Database:$selected_database $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"
+

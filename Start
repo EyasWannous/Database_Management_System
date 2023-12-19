@@ -1,0 +1,79 @@
+#!/bin/bash
+
+while [ 1 -eq 1 ];
+do
+    echo ""
+    echo ""
+    echo ""
+
+    echo "Enter 1 to create a database"
+    echo "Enter 2 to delete a database"
+    echo "Enter 3 to empty a database"
+    echo "Enter 4 to create a table"
+    echo "Enter 5 to delete a table"
+    echo "Enter 6 to insert data into a table"
+    echo "Enter 7 to retrieve data from a table"
+    echo "Enter 8 to update data in a table"
+    echo "Enter 9 to delete data from a table"
+    echo "Enter 10 to backup databases"
+    echo "Enter 11 for logs"
+    echo "Enter 12 for restore backup"
+    echo "Enter 0 to exit"
+
+    echo ""
+
+    echo -n "Enter operation number: "
+    read operation_number
+
+    case "$operation_number" in
+    1)
+	echo -n "Enter Database Name:"
+	read Database_Name
+	echo -n "Enter Public or Private:"
+	read Privacy
+
+        bash Create_Database $Database_Name $Privacy
+        ;;
+    2)
+        bash Delete_Database
+        ;;
+    3)
+        bash Empty_Database
+        ;;
+    4)
+        bash Create_Table
+        ;;
+    5)
+        bash Delete_Table
+        ;;
+    6)
+        bash Insert_Into_Table
+        ;;
+    7)
+        bash Retrieve_Data
+        ;;
+    8)
+        bash Update_Data
+        ;;
+    9)
+        bash Delete_Data_In_Table
+        ;;
+    10)
+        bash create_backup
+        ;;
+    11)
+        bash Make_Excel
+        ;;
+    12)
+	bash restore_backup
+	;;
+    0)
+        exit 0
+        ;;
+    
+    *)
+        echo "Invalid Number Try Again."
+        ;;
+    esac
+
+done

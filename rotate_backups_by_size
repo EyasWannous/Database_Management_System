@@ -1,0 +1,25 @@
+#!/bin/bash
+
+backup_type="$1"
+database_backup_dir="$2"
+max_size=500
+
+if [ ! -d "/opt/Backups/$backup_type/$database_backup_dir" ]; then
+    echo "Error: Backup directory '/opt/Backups/$backup_type/$selected_database' not found."
+    exit 1
+fi
+
+
+cd "/opt/Backups/$backup_type/$database_backup_dir" || exit
+
+total_size=$(du -sm "/opt/Backups/$backup_type/$database_backup_dir" | awk '{print $1}')
+
+while [ "$total_size" -gt "$max_size" ]; do
+    oldest_file=$(ls -t | tail -n 1)
+    rm -f "$oldest_file"
+
+    total_size=$(du -sm "/opt/Backups/$backup_type/$database_backup_dir" | awk '{print $1}')
+done
+
+echo "Rotation based on database size completed successfully"
+

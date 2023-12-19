@@ -1,0 +1,64 @@
+#!/bin/bash
+
+/bin/bash ./List_Databases
+
+echo -n "Enter the name of the database to delete data from: "
+read DB_NAME
+
+if [ ! -d "Databases/$DB_NAME" ]; then
+    echo "Database '$DB_NAME' does not exist."
+    exit 1
+fi
+
+echo "Tables in '$DB_NAME':"
+ls "Databases/$DB_NAME"
+
+echo -n "Enter the name of the table to delete data from: "
+read TABLE_NAME
+
+if [ ! -f "Databases/$DB_NAME/$TABLE_NAME" ]; then
+    echo "Table '$TABLE_NAME' does not exist in database '$DB_NAME'."
+    exit 1
+fi
+
+echo "Choose a delete option:"
+echo "1. Delete all table data"
+echo "2. Delete data based on specific criteria"
+echo -n "Enter your choice (1 or 2): "
+read DELETE_OPTION
+
+case $DELETE_OPTION in
+    1)
+       	head -n 1 "Databases/$DB_NAME/$TABLE_NAME" > "Databases/$DB_NAME/$TABLE_NAME.tmp"
+	mv "Databases/$DB_NAME/$TABLE_NAME.tmp" "Databases/$DB_NAME/$TABLE_NAME"
+
+        echo "All data from '$TABLE_NAME' in '$DB_NAME' has been deleted."
+        ;;
+    2)
+        echo -n "Enter the value to delete data based on: "
+        read DELETE_CRITERIA
+
+        awk -v delete_criteria="$DELETE_CRITERIA" '$0 !~ delete_criteria' "Databases/$DB_NAME/$TABLE_NAME" > "Databases/$DB_NAME/$TABLE_NAME.tmp"
+        mv "Databases/$DB_NAME/$TABLE_NAME.tmp" "Databases/$DB_NAME/$TABLE_NAME"
+
+        echo "Data in '$TABLE_NAME' in '$DB_NAME' containing '$DELETE_CRITERIA' has been deleted."
+        ;;
+    *)
+        echo "Invalid choice. Please select 1 or 2."
+        ;;
+esac
+
+## log
+LOG_FILE="/opt/logs/db_activity.log"
+ADMINS_FILE="./admins"
+DB_PATH="./Databases/$DB_NAME"
+
+if grep -qx "$(whoami)" "$ADMINS_FILE"; then
+    USER_ROLE="admin"
+elif [ "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]; then
+    USER_ROLE="owner"
+else
+    USER_ROLE="other"
+fi
+
+echo "deleted data from Database:$DB_NAME Table:$TABLE_NAME $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"

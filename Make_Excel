@@ -1,0 +1,22 @@
+#!/bin/bash
+
+LOG_FILE="/opt/logs/db_activity.log"
+CSV_FILE="/opt/logs/db_activity.csv"
+DB_PATH="/home/Databases"
+ADMINS_PATH="/home/admins"
+
+if [[ "$(whoami)" = "root" || $(grep -qx "$(whoami)" "$ADMINS_FILE") || "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]]; then
+    echo "User has permission to export logs to Excel."
+
+    awk -F ':' '{print $1, $2, $3, $4, $5}' OFS=',' "$LOG_FILE" > "$CSV_FILE"
+
+    if [ ! -s "$CSV_FILE" ]; then
+        echo "No logs found or couldn't export to CSV."
+    else
+        echo "Logs exported to CSV file: $CSV_FILE"
+    fi
+
+    echo "Please import the generated CSV file into Excel to view logs."
+else
+    echo "User does not have permission to export logs to Excel."
+fi

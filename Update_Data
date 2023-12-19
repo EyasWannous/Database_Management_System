@@ -1,0 +1,65 @@
+#!/bin/bash
+
+/bin/bash ./List_Databases
+
+echo -n "Enter the name of the database to update data in: "
+read DB_NAME
+
+if [ ! -d "Databases/$DB_NAME" ]; then
+    echo "Database '$DB_NAME' does not exist."
+    exit 1
+fi
+
+echo "Tables in '$DB_NAME':"
+ls "Databases/$DB_NAME"
+
+echo -n "Enter the name of the table to update data in: "
+read TABLE_NAME
+
+if [ ! -f "Databases/$DB_NAME/$TABLE_NAME" ]; then
+    echo "Table '$TABLE_NAME' does not exist in database '$DB_NAME'."
+    exit 1
+fi
+
+echo "Columns in '$TABLE_NAME':"
+head -n 1 "Databases/$DB_NAME/$TABLE_NAME"
+
+echo -n "Enter the name of the column to update: "
+read COLUMN_NAME
+
+echo -n "Enter the ID of the row to update: "
+read ROW_ID
+
+echo -n "Enter the new value for '$COLUMN_NAME' in row with ID '$ROW_ID': "
+read NEW_VALUE
+
+if ! grep -q "$ROW_ID" "Databases/$DB_NAME/$TABLE_NAME"; then
+    echo "Row with ID '$ROW_ID' not found in '$TABLE_NAME'."
+    exit 1
+fi
+
+COLUMN_INDEX=$(head -n 1 "Databases/$DB_NAME/$TABLE_NAME" | awk -v col_name="$COLUMN_NAME" '{ for (i=1; i<=NF; i++) { if ($i == col_name) { print i; exit } } }')
+
+if [ -z "$COLUMN_INDEX" ]; then
+    echo "Column '$COLUMN_NAME' not found in '$TABLE_NAME'."
+    exit 1
+fi
+
+awk -v id=$ROW_ID -v value=$NEW_VALUE -v column=$COLUMN_INDEX 'BEGIN {OFS = FS} NR==1 {print; next} $1 == id {$column = value} 1' Databases/$DB_NAME/$TABLE_NAME > temp && mv temp Databases/$DB_NAME/$TABLE_NAME
+
+echo "Data in '$COLUMN_NAME' for row with ID '$ROW_ID' in '$TABLE_NAME' has been updated to '$NEW_VALUE'."
+
+##Log
+LOG_FILE="/opt/logs/db_activity.log"
+ADMINS_FILE="./admins"
+DB_PATH="./Databases/$DB_NAME"
+
+if grep -qx "$(whoami)" "$ADMINS_FILE"; then
+    USER_ROLE="admin"
+elif [ "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]; then
+    USER_ROLE="owner"
+else
+    USER_ROLE="other"
+fi
+
+echo "updated datd in Database:$DB_NAME Table:$TABLE_NAME $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"

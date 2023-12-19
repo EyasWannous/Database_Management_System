@@ -1,0 +1,42 @@
+#!/bin/bash
+
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <DatabaseName> <Public/Private>"
+    exit 1
+fi
+
+DB_NAME=$1
+ACCESS=$2
+
+mkdir -p "Databases/$DB_NAME"
+
+if [ "$ACCESS" == "Public" ]; then
+    chmod -R 775 "Databases/$DB_NAME"
+else
+    chmod -R 700 "Databases/$DB_NAME"
+fi
+
+chown -R $(whoami) "Databases/$DB_NAME"
+groupadd $DB_NAME
+usermod -aG $DB_NAME $(whoami)
+
+while IFS= read -r admin; do
+    usermod -aG $DB_NAME "$admin"
+done < "admins"
+
+echo "Database '$DB_NAME' created successfully."
+
+## log
+LOG_FILE="/opt/logs/db_activity.log"
+ADMINS_FILE="./admins"
+DB_PATH="./Databases/$DB_NAME"
+
+if grep -qx "$(whoami)" "$ADMINS_FILE"; then
+    USER_ROLE="admin"
+elif [ "$(stat -c '%U' "$DB_PATH")" = "$(whoami)" ]; then
+    USER_ROLE="owner"
+else
+    USER_ROLE="other"
+fi
+
+echo "create Database:$DB_NAME $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"

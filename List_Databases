@@ -1,0 +1,22 @@
+#!/bin/bash
+
+DATABASE_PATH="Databases"
+
+if [ -d "$DATABASE_PATH" ]; then
+    if [ -n "$(ls -A "$DATABASE_PATH")" ]; then
+        echo "Available Databases:"
+        for DB in "$DATABASE_PATH"/*; do
+            if [ -d "$DB" ]; then
+                DB_NAME=$(basename "$DB")
+
+                if [ -r "$DB" ] || [ -x "$DB" ] || [ "$(id -Gn | grep -wq 'admins')" ]; then
+                    echo "$DB_NAME"
+                fi
+            fi
+        done
+    else
+        echo "No databases found."
+    fi
+else
+    echo "No databases found."
+fi
