@@ -97,5 +97,5 @@ else
     USER_ROLE="other"
 fi
 
-echo "create backup for Database:$selected_database $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"
+echo "create backup of $selected_database Database, $(whoami):$USER_ROLE $(date)" >> "$LOG_FILE"
 
